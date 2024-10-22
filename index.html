@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Fetch News</title>
+    <script>
+        const apiKey = '6030a01e5bec48b4b0a62a7c1d2b56a5'; // Replace with your actual API key from NewsAPI
+        let currentPage = 1; // Pagination control
+
+        function fetchNews(isSearch = false) {
+            const newsContainer = document.getElementById('newsContainer');
+            const spinner = document.createElement('div');
+            spinner.innerHTML = '<p>Loading...</p>';
+            newsContainer.innerHTML = ''; // Clear previous results
+            newsContainer.appendChild(spinner); // Show spinner while loading
+
+            let url = '';
+            if (isSearch) {
+                const keyword = document.getElementById('searchKeyword').value;
+                if (!keyword) {
+                    alert('Please enter a search keyword');
+                    newsContainer.removeChild(spinner); // Remove spinner on error
+                    return;
+                }
+                url = `https://newsapi.org/v2/everything?q=${keyword}&apiKey=${apiKey}`;
+                localStorage.setItem('lastSearch', keyword); // Save search to localStorage
+            } else {
+                const category = document.getElementById('category').value;
+                url = `https://newsapi.org/v2/top-headlines?category=${category}&country=us&page=${currentPage}&pageSize=5&apiKey=${apiKey}`;
+            }
+
+            fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                newsContainer.removeChild(spinner); // Remove spinner after data loads
+
+                if (data.articles.length === 0) {
+                    newsContainer.innerHTML = '<p>No news articles found.</p>';
+                } else {
+                    data.articles.forEach(article => {
+                        const newsItem = document.createElement('div');
+                        newsItem.classList.add('news-item');
+                        newsItem.innerHTML = `
+                            <img src="${article.urlToImage}" alt="News Image" />
+                            <div>
+                                <h2>${article.title}</h2>
+                                <p>${article.description}</p>
+                                <a href="${article.url}" target="_blank">Read more</a>
+                            </div>
+                        `;
+                        newsContainer.appendChild(newsItem);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching the news:', error);
+                newsContainer.removeChild(spinner); // Remove spinner on error
+                newsContainer.innerHTML = '<p>Something went wrong. Please try again later.</p>';
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const fetchCategoryButton = document.getElementById('fetchCategory');
+            fetchCategoryButton.addEventListener('click', function() {
+                fetchNews(false);
+            });
+
+            const lastSearch = localStorage.getItem('lastSearch');
+            if (lastSearch) {
+                document.getElementById('searchKeyword').value = lastSearch;
+                fetchNews(true); // Automatically fetch based on last search
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Fetching your favorite News!</h1>
+        <div class="selectionContainer">
+            <label for="category">Choose Category</label>
+            <select id="category">
+                <option value="business">Business</option>
+                <option value="entertainment">Entertainment</option>
+                <option value="general">General</option>
+                <option value="health">Health</option>
+                <option value="science">Science</option>
+                <option value="sports">Sports</option>
+                <option value="technology">Technology</option>
+            </select>
+            <button id="fetchCategory">Search News</button>
+        </div>
+        <div class="searchContainer">
+            <input type="text" id="searchKeyword" placeholder="Search for news...">
+            <button onclick="fetchNews(true)">Search by Keyword</button>
+        </div>
+        <div id="newsContainer"></div>
+    </div>
+    <footer>
+        &copy; 2024 Jonathan's News Fetcher
+    </footer>
+</body>
+</html>
